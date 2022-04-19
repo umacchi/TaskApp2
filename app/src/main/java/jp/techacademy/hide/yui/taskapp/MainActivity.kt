@@ -10,6 +10,10 @@ import android.content.Intent
 import androidx.appcompat.app.AlertDialog
 import android.app.AlarmManager
 import android.app.PendingIntent
+import android.util.Log
+import android.view.View
+import io.realm.RealmResults
+import kotlinx.android.synthetic.main.content_input.*
 
 const val EXTRA_TASK = "jp.techacademy.hide.yui.taskapp.TASK"
 
@@ -26,6 +30,11 @@ class MainActivity : AppCompatActivity() {
         fab.setOnClickListener { view ->
             val intent = Intent(this, InputActivity::class.java)
             startActivity(intent)
+        }
+
+        // カテゴリ検索ボタンをクリックした時
+        category_search_button.setOnClickListener {
+            reloadListView()
         }
 
         // Realmの設定
@@ -87,12 +96,28 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
+
         reloadListView()
     }
 
     private fun reloadListView() {
-        // Realmデータベースから、「すべてのデータを取得して新しい日時順に並べた結果」を取得
-        val taskRealmResults = mRealm.where(Task::class.java).findAll().sort("date", Sort.DESCENDING)
+
+        val searchKeyword = category_search_text.text.toString()
+        Log.d("ANDROID_UI", "reloadListView: $searchKeyword")
+
+        val taskRealmResults = if(searchKeyword == "") {
+            // Realmデータベースから、「すべてのデータを取得して新しい日時順に並べた結果」を取得
+            mRealm.where(Task::class.java)
+                .findAll()
+                .sort("date", Sort.DESCENDING)
+
+        } else {
+            // Realmデータベースから、「カテゴリ絞り込み済みのデータを取得して新しい日時順に並べた結果」を取得
+            mRealm.where(Task::class.java)
+                .contains("category",searchKeyword)
+                .findAll()
+                .sort("date", Sort.DESCENDING)
+        }
 
         // 上記の結果を、TaskListとしてセットする
         mTaskAdapter.mTaskList = mRealm.copyFromRealm(taskRealmResults)
